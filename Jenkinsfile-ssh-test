@@ -1,0 +1,20 @@
+pipeline {
+    agent any
+    environment {
+        SSH_KEY = 'ec2-key'
+        EC2_IP = '65.2.181.187'  // replace with your EC2 IP
+    }
+    stages {
+        stage('Test SSH Connection') {
+            steps {
+                sshagent(['ec2-key']) {
+                    // Show whether Jenkins loaded the key
+                    sh "ssh-add -l"
+
+                    // Try to login to EC2
+                    sh "ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} whoami"
+                }
+            }
+        }
+    }
+}
