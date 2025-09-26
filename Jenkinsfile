@@ -80,12 +80,11 @@ pipeline {
 
                     // Actual deployment command
                      
-                    
                     sh """
                         ssh -o BatchMode=yes ubuntu@${ec2_ip} \\
-                        "docker pull ${IMAGE_NAME}:${BUILD_NUMBER} && \\
-                         docker rm -f myapp || true && \\
-                         docker run -d --name myapp -p 8080:8080 ${IMAGE_NAME}:${BUILD_NUMBER}"
+                        "/usr/bin/docker pull ${IMAGE_NAME}:${BUILD_NUMBER} && \\
+                         /usr/bin/docker rm -f myapp || true && \\
+                         /usr/bin/docker run -d --name myapp -p 8080:8080 ${IMAGE_NAME}:${BUILD_NUMBER}"
                     """
                 }
             }
