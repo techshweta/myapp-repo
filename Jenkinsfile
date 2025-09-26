@@ -47,7 +47,7 @@ pipeline {
         }
 
         stage('Deploy to EC2') {
-            steps {
+    steps {
         sshagent([SSH_KEY]) {
             script {
                 // Get Terraform outputs as JSON
@@ -64,18 +64,24 @@ pipeline {
                     def ec2_ip = ec2_map[envName]
                     
                     echo "Deploying to ${envName} at ${ec2_ip}"
-                    // Optional: wait for EC2 to be ready
-                    sh "sleep 30"
+                    sh "sleep 30" // Optional wait for EC2 to be ready
 
-                    //  Debug: check if key is loaded and usable
+                    // Add EC2 host key to known_hosts safely
+                    sh """
+                        ssh-keyscan -H ${ec2_ip} >> /var/lib/jenkins/.ssh/known_hosts || true
+                        chmod 600 /var/lib/jenkins/.ssh/known_hosts
+                    """
+
+                    // Debug: list loaded keys
                     sh "ssh-add -l"
-                    sh "ssh -v ubuntu@${ec2_ip} whoami || true"
+
+                    // Test SSH connection
+                    sh "ssh -o BatchMode=yes ubuntu@${ec2_ip} whoami"
 
                     // Actual deployment command
-                    // Run commands on EC2
                     sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${ec2_ip} \\
-                        " export PATH=$PATH:/usr/bin:/usr/local/bin && \\
+                        ssh -o BatchMode=yes ubuntu@${ec2_ip} \\
+                        "export PATH=\$PATH:/usr/bin:/usr/local/bin && \\
                          sudo docker pull ${IMAGE_NAME}:${BUILD_NUMBER} && \\
                          sudo docker rm -f myapp || true && \\
                          sudo docker run -d --name myapp -p 8080:8080 ${IMAGE_NAME}:${BUILD_NUMBER}"
@@ -83,7 +89,7 @@ pipeline {
                 }
             }
         }
-    }   
+    }
 }
     }
 }
