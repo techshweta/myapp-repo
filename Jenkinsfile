@@ -77,7 +77,7 @@ pipeline {
                         ssh -o StrictHostKeyChecking=no ubuntu@${ec2_ip} \\
                         " export PATH=$PATH:/usr/bin:/usr/local/bin && \\
                          sudo docker pull ${IMAGE_NAME}:${BUILD_NUMBER} && \\
-                         dsudo ocker rm -f myapp || true && \\
+                         sudo docker rm -f myapp || true && \\
                          sudo docker run -d --name myapp -p 8080:8080 ${IMAGE_NAME}:${BUILD_NUMBER}"
                     """
                 }
