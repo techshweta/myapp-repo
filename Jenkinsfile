@@ -79,12 +79,13 @@ pipeline {
                     sh "ssh -o BatchMode=yes ubuntu@${ec2_ip} whoami"
 
                     // Actual deployment command
+                     
+                    
                     sh """
                         ssh -o BatchMode=yes ubuntu@${ec2_ip} \\
-                        "export PATH=\$PATH:/usr/bin:/usr/local/bin && \\
-                         sudo docker pull ${IMAGE_NAME}:${BUILD_NUMBER} && \\
-                         sudo docker rm -f myapp || true && \\
-                         sudo docker run -d --name myapp -p 8080:8080 ${IMAGE_NAME}:${BUILD_NUMBER}"
+                        "docker pull ${IMAGE_NAME}:${BUILD_NUMBER} && \\
+                         docker rm -f myapp || true && \\
+                         docker run -d --name myapp -p 8080:8080 ${IMAGE_NAME}:${BUILD_NUMBER}"
                     """
                 }
             }
