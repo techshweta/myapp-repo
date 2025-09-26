@@ -81,10 +81,10 @@ pipeline {
                     // Actual deployment command
                      
                     sh """
-                        ssh -o BatchMode=yes ubuntu@${ec2_ip} \\
-                        "/usr/bin/docker pull ${IMAGE_NAME}:${BUILD_NUMBER} && \\
-                         /usr/bin/docker rm -f myapp || true && \\
-                         /usr/bin/docker run -d --name myapp -p 8080:8080 ${IMAGE_NAME}:${BUILD_NUMBER}"
+                    ssh -o BatchMode=yes ubuntu@${ec2_ip} \\
+                        "env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin docker pull ${IMAGE_NAME}:${BUILD_NUMBER} && \\
+                         env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin docker rm -f myapp || true && \\
+                         env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin docker run -d --name myapp -p 8080:8080 ${IMAGE_NAME}:${BUILD_NUMBER}"
                     """
                 }
             }
