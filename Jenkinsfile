@@ -82,13 +82,20 @@ pipeline {
                     // Actual deployment command
                      
                      sh """
-                        ssh -o BatchMode=yes ubuntu@${ec2_ip} '
-                          sudo systemctl start docker && \
-                          env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin docker stop myapp || true && \
-                          env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin docker rm -f myapp || true && \
-                          env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin docker pull ${IMAGE_NAME}:latest && \
-                          env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin docker run -d --name myapp -p 8081:8080 ${IMAGE_NAME}:latest
-                        '
+                        ssh -o BatchMode=yes ubuntu@${ec2_ip} "
+                        if ! command -v docker &> /dev/null; then
+                        sudo apt-get update -y
+                        sudo apt-get install -y docker.io
+                        sudo systemctl enable docker
+                        sudo systemctl start docker
+                        fi
+
+                        sudo docker stop myapp || true
+                        sudo docker rm -f myapp || true
+                        sudo docker pull ${IMAGE_NAME}:latest
+                        sudo docker run -d --name myapp -p 8081:8080 ${IMAGE_NAME}:latest
+                        "
+
                     """
                 }
             }
