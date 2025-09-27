@@ -83,12 +83,9 @@ pipeline {
                      
                      sh """
                         ssh -o BatchMode=yes ubuntu@${ec2_ip} "
-                        if ! command -v docker &> /dev/null; then
-                        sudo apt-get update -y
-                        sudo apt-get install -y docker.io
+                        sudo systemctl daemon-reload
                         sudo systemctl enable docker
                         sudo systemctl start docker
-                        fi
 
                         sudo docker stop myapp || true
                         sudo docker rm -f myapp || true
