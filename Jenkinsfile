@@ -81,15 +81,14 @@ pipeline {
 
                     // Actual deployment command
                      
-                    sh """
-                    ssh -o BatchMode=yes ubuntu@${ec2_ip} \\
-
-                        '
+                     sh """
+                        ssh -o BatchMode=yes ubuntu@${ec2_ip} '
                           sudo systemctl start docker && \
                           docker stop myapp || true && \
                           docker rm -f myapp || true && \
                           docker pull ${IMAGE_NAME}:latest && \
-                          docker run -d --name myapp -p 8081:8080 ${IMAGE_NAME}:latest'
+                          docker run -d --name myapp -p 8081:8080 ${IMAGE_NAME}:latest
+                        '
                     """
                 }
             }
