@@ -9,7 +9,7 @@ pipeline {
         DOCKERHUB_CRED = 'dockerhub-cred'
         SSH_KEY = 'ec2-key'
         REGISTRY = "docker.io"
-        BUILD_NUMBER = "${env.BUILD_NUMBER}"// Docker tag / build number
+        TAG = "${env.BUILD_NUMBER}"// Docker tag / build number
         IMAGE_NAME = "techshweta/myapp"
     }
 
@@ -21,7 +21,7 @@ pipeline {
         stage('Build WAR and Docker Image') {
             steps {
                 sh 'mvn clean package -DskipTests'
-                sh "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} ."
+                sh "docker build -t ${IMAGE_NAME}:latest ."
             }
         }
 
@@ -30,7 +30,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: DOCKERHUB_CRED, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh """
                         echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
-                        docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+                        docker push ${IMAGE_NAME}:latest
                     """
                 }
             }
@@ -83,9 +83,13 @@ pipeline {
                      
                     sh """
                     ssh -o BatchMode=yes ubuntu@${ec2_ip} \\
-                        "env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin docker pull ${IMAGE_NAME}:${BUILD_NUMBER} && \\
-                         env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin docker rm -f myapp || true && \\
-                         env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin docker run -d --name myapp -p 8080:8080 ${IMAGE_NAME}:${BUILD_NUMBER}"
+
+                        "
+                          sudo systemctl start docker && \
+                          docker stop myapp || true && \
+                          docker rm -f myapp || true && \
+                          docker pull ${IMAGE_NAME}:latest && \
+                          docker run -d --name myapp -p 8081:8080 ${IMAGE_NAME}:latest"
                     """
                 }
             }
