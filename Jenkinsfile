@@ -9,6 +9,7 @@ pipeline {
         DOCKERHUB_CRED = 'dockerhub-cred'
         SSH_KEY = 'ec2-key'
         REGISTRY = "docker.io"
+        BUILD_NUMBER = "${env.BUILD_NUMBER}"// Docker tag / build number
         IMAGE_NAME = "techshweta/myapp"
     }
 
