@@ -83,6 +83,11 @@ pipeline {
                      
                      sh """
                         ssh -o BatchMode=yes ubuntu@${ec2_ip} "
+                        # Wait for any apt locks to clear
+                        while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
+                            echo 'Waiting for apt lock to be released...'
+                            sleep 30
+                        done
                         if ! command -v docker &> /dev/null; then
                              sudo apt-get update -y
                              sudo apt-get install -y docker.io
