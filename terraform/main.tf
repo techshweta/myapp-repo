@@ -79,22 +79,8 @@ resource "aws_security_group" "allow_web" {
   }
 
   ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
     from_port   = 8081
     to_port     = 8081
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -135,15 +121,6 @@ resource "aws_instance" "app" {
     Name = "${each.key}-tomcat"
     Env  = each.key
   }
-
-  user_data = <<-EOF
-              #!/bin/bash
-              set -e
-              sudo apt update -y
-              sudo apt install -y openjdk-11-jdk tomcat9 tomcat9-admin
-              sudo systemctl enable tomcat9
-              sudo systemctl start tomcat9
-              EOF
 }
 
 # --- Output ---

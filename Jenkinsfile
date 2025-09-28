@@ -99,10 +99,6 @@ pipeline {
                         sudo docker rm -f myapp || true
                         sudo docker pull ${IMAGE_NAME}:latest
                         sudo docker run -d --name myapp -p 8081:8080 ${IMAGE_NAME}:latest
-                        
-                        # Fix permissions inside container
-                        sudo docker exec myapp chown -R tomcat:tomcat /usr/local/tomcat/webapps/ROOT /usr/local/tomcat/webapps/ROOT.war
-                        sudo docker exec myapp chmod -R 755 /usr/local/tomcat/webapps/ROOT /usr/local/tomcat/webapps/ROOT.war
                         "
 
                     """
