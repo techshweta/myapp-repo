@@ -8,6 +8,9 @@ RUN rm -rf /usr/local/tomcat/webapps/*
 # If using Maven, Jenkins will produce target/myapp.war
 COPY target/*.war /usr/local/tomcat/webapps/ROOT.war
 
+# Fix permissions so Tomcat can read/deploy it
+RUN chown -R tomcat:tomcat /usr/local/tomcat/webapps
+
 # Expose Tomcat port
 EXPOSE 8080
 
