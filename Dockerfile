@@ -1,5 +1,5 @@
 # Start from official Tomcat base image
-FROM tomcat:9.0-jdk11-openjdk
+FROM tomcat:9.0-jdk17-openjdk
 
 # Remove default ROOT app
 RUN rm -rf /usr/local/tomcat/webapps/*
