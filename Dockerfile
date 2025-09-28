@@ -4,12 +4,17 @@ FROM tomcat:9.0-jdk11-openjdk
 # Remove default ROOT app
 RUN rm -rf /usr/local/tomcat/webapps/*
 
+# Create tomcat user and group
+RUN groupadd -r tomcat && useradd -r -g tomcat tomcat
+
 # Copy your WAR file into Tomcat webapps
-# If using Maven, Jenkins will produce target/myapp.war
 COPY target/*.war /usr/local/tomcat/webapps/ROOT.war
 
 # Fix permissions so Tomcat can read/deploy it
 RUN chown -R tomcat:tomcat /usr/local/tomcat/webapps
+
+# Switch to tomcat user
+USER tomcat
 
 # Expose Tomcat port
 EXPOSE 8080
