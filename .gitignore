@@ -1,0 +1,38 @@
+# ===== Maven / Java =====
+target/
+*.class
+*.log
+*.jar
+*.war
+*.ear
+*.iml
+*.ipr
+*.iws
+
+# ===== IntelliJ IDEA / VSCode =====
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# ===== OS Files =====
+Thumbs.db
+*.tmp
+
+# ===== Logs =====
+logs/
+*.log
+
+
+# ===== Terraform =====
+*.tfstate
+*.tfstate.*
+crash.log
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
+
+# ===== Docker =====
+.docker/
