@@ -38,10 +38,20 @@ pipeline {
 
         stage('Provision Infra with Terraform') {
             steps {
-                withAWS(credentials: AWS_CRED, region: 'ap-south-1') {
+                withAWS(credentials: AWS_CRED, region: "${AWS_REGION}") {
                     dir('terraform') {
                         sh "terraform init -input=false -reconfigure -force-copy"
-                        sh "terraform apply -auto-approve"
+
+                        // Loop through each environment
+                        ['dev', 'uat', 'prod'].each { envName ->
+                            echo "Provisioning environment: ${envName}"
+
+                            // Create/select workspace
+                            sh "terraform workspace new ${envName} || terraform workspace select ${envName}"
+
+                            // Apply Terraform for that workspace
+                            sh "terraform apply -auto-approve"
+                        }
                     }
                 }
             }
@@ -52,17 +62,18 @@ pipeline {
                 withAWS(credentials: AWS_CRED, region: 'ap-south-1') {
                     dir('terraform') {
                         script {
-                            // Get Terraform outputs as JSON
-                            def ec2_ips_json = sh(
-                                script: "terraform output -json ec2_public_ip",
-                                returnStdout: true
-                            ).trim()
-                            
-                            def ec2_map = readJSON text: ec2_ips_json
-
-                            // Loop through dev, uat, prod
                             ['dev','uat','prod'].each { envName ->
-                                def ec2_ip = ec2_map[envName]
+                                echo "Fetching output for ${envName}"
+
+                                // Ensure workspace is selected
+                                sh "terraform workspace select ${envName}"
+
+                                // Get Terraform output (per workspace)
+                                def ec2_ip = sh(
+                                    script: "terraform output -raw ec2_public_ip",
+                                    returnStdout: true
+                                ).trim()
+
                                 echo "Deploying to ${envName} at ${ec2_ip}"
 
                                 sh "sleep 30" // Optional wait for EC2 to be ready
