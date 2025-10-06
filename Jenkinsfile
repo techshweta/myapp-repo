@@ -40,7 +40,7 @@ pipeline {
             steps {
                 withAWS(credentials: AWS_CRED, region: 'ap-south-1') {
                     dir('terraform') {
-                        sh "terraform init -input=false -migrate-state"
+                        sh "terraform init  -migrate-state"
                         sh "terraform apply -auto-approve"
                     }
                 }
