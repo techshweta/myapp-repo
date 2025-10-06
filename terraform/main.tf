@@ -1,4 +1,12 @@
 terraform {
+  backend "s3" {
+    bucket         = "my-terraform-state-env-bucket"   # replace with your bucket name
+    key            = "infra/terraform.tfstate"     # path inside bucket
+    region         = "ap-south-1"                  # region of S3 bucket
+    dynamodb_table = "terraform-locks"             # DynamoDB table for state locking
+    encrypt        = true
+  }
+
     required_providers {
         aws = {
             source = "hashicorp/aws"
