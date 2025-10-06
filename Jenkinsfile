@@ -37,28 +37,32 @@ pipeline {
         }
 
         stage('Provision Infra with Terraform') {
-            steps {
-                withAWS(credentials: AWS_CRED, region: 'ap-south-1') {
-                    dir('terraform') {
-                        script {
-                           sh "terraform init -input=false -reconfigure -force-copy"
+    steps {
+        withAWS(credentials: AWS_CRED, region: 'ap-south-1') {
+            dir('terraform') {
+                script {
+                    // Loop through each environment
+                    ['dev', 'uat', 'prod'].each { envName ->
+                        echo "Provisioning environment: ${envName}"
 
-                        // Loop through each environment
-                        ['dev', 'uat', 'prod'].each { envName ->
-                            echo "Provisioning environment: ${envName}"
+                        // Initialize Terraform with backend key specific to env
+                        sh """
+                           terraform init -input=false -reconfigure -force-copy \
+                           -backend-config="key=infra/${envName}/terraform.tfstate"
+                        """
 
-                            // Create/select workspace
-                            sh "terraform workspace new ${envName} || terraform workspace select ${envName}"
+                        // Select or create workspace
+                        sh "terraform workspace new ${envName} || terraform workspace select ${envName}"
 
-                            // Apply Terraform for that workspace
-                            sh "terraform apply -auto-approve"
-                        }
+                        // Apply Terraform
+                        sh "terraform apply -auto-approve"
                     }
                 }
             }
         }
     }
-
+}
+   
         stage('Deploy to EC2') {
      steps {
                 withAWS(credentials: AWS_CRED, region: 'ap-south-1') {
