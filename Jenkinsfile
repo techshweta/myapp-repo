@@ -48,64 +48,66 @@ pipeline {
         }
 
         stage('Deploy to EC2') {
-    steps {
-        sshagent([SSH_KEY]) {
-            script {
-                // Get Terraform outputs as JSON
-                def ec2_ips_json = sh(
-                    script: "terraform -chdir=terraform output -json ec2_public_ip",
-                    returnStdout: true
-                ).trim()
-                
-                // Parse JSON to map
-                def ec2_map = readJSON text: ec2_ips_json
+     steps {
+                withAWS(credentials: AWS_CRED, region: 'ap-south-1') {
+                    dir('terraform') {
+                        script {
+                            // Get Terraform outputs as JSON
+                            def ec2_ips_json = sh(
+                                script: "terraform output -json ec2_public_ip",
+                                returnStdout: true
+                            ).trim()
+                            
+                            def ec2_map = readJSON text: ec2_ips_json
 
-                // Loop through each environment
-                ['dev','uat','prod'].each { envName ->
-                    def ec2_ip = ec2_map[envName]
-                    
-                    echo "Deploying to ${envName} at ${ec2_ip}"
-                    sh "sleep 30" // Optional wait for EC2 to be ready
+                            // Loop through dev, uat, prod
+                            ['dev','uat','prod'].each { envName ->
+                                def ec2_ip = ec2_map[envName]
+                                echo "Deploying to ${envName} at ${ec2_ip}"
 
-                    // Add EC2 host key to known_hosts safely
-                    sh """
-                        ssh-keyscan -H ${ec2_ip} >> /var/lib/jenkins/.ssh/known_hosts || true
-                        chmod 600 /var/lib/jenkins/.ssh/known_hosts
-                    """
+                                sh "sleep 30" // Optional wait for EC2 to be ready
 
-                    // Debug: list loaded keys
-                    sh "ssh-add -l"
+                                // Add EC2 host key to known_hosts safely
+                                sh """
+                                    mkdir -p /var/lib/jenkins/.ssh
+                                    ssh-keyscan -H ${ec2_ip} >> /var/lib/jenkins/.ssh/known_hosts || true
+                                    chmod 600 /var/lib/jenkins/.ssh/known_hosts
+                                """
 
-                    // Test SSH connection
-                    sh "ssh -o BatchMode=yes ubuntu@${ec2_ip} whoami"
+                                // SSH deployment
+                                sshagent([SSH_KEY]) {
+                                    sh """
+                                        ssh -o BatchMode=yes ubuntu@${ec2_ip} "
+                                        # Wait for any apt locks
+                                        while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
+                                            echo 'Waiting for apt lock...'
+                                            sleep 10
+                                        done
 
-                    // Actual deployment command
-                     
-                     sh """
-                        ssh -o BatchMode=yes ubuntu@${ec2_ip} "
-                        # Wait for any apt locks to clear
-                        while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
-                            echo 'Waiting for apt lock to be released...'
-                            sleep 30
-                        done
-                        if ! command -v docker &> /dev/null; then
-                             sudo apt-get update -y
-                             sudo apt-get install -y docker.io
-                             sudo usermod -aG docker ubuntu
-                             sudo systemctl enable docker
-                             sudo systemctl start docker
-                        fi   
-                        sudo docker stop myapp || true
-                        sudo docker rm -f myapp || true
-                        sudo docker pull ${IMAGE_NAME}:latest
-                        sudo docker run -d --name myapp -p 8081:8080 ${IMAGE_NAME}:latest
-                        "
+                                        # Install Docker if missing
+                                        if ! command -v docker &> /dev/null; then
+                                            sudo apt-get update -y
+                                            sudo apt-get install -y docker.io
+                                            sudo usermod -aG docker ubuntu
+                                            sudo systemctl enable docker
+                                            sudo systemctl start docker
+                                        fi
 
-                    """
+                                        # Stop & remove old container
+                                        sudo docker stop myapp || true
+                                        sudo docker rm -f myapp || true
+
+                                        # Pull latest image & run
+                                        sudo docker pull ${IMAGE_NAME}:latest
+                                        sudo docker run -d --name myapp -p 8081:8080 ${IMAGE_NAME}:latest
+                                        "
+                                    """
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-    }
-}
     }
 }
