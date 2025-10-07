@@ -49,11 +49,12 @@ pipeline {
    
         stage('Deploy to EC2') {
             steps {
-                sshagent([SSH_KEY]) {
-                    dir('terraform') {
-                        script {
+                withAWS(credentials: AWS_CRED, region: 'ap-south-1') {
+                    sshagent([SSH_KEY]) {
+                       script {
+                           dir('terraform') {
                             def ec2_ips_json = sh(
-                                script: "terraform -chdir=terraform output -json ec2_public_ip",
+                                script: "terraform output -json ec2_public_ip",
                                 returnStdout: true
                             ).trim()
 
@@ -102,4 +103,5 @@ pipeline {
             }
         }
     }
+} 
 }
