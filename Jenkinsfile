@@ -53,7 +53,7 @@ pipeline {
                     dir('terraform') {
                         script {
                             def ec2_ips_json = sh(
-                                script: "terraform output -json ec2_public_ip",
+                                script: "terraform -chdir=terraform output -json ec2_public_ip",
                                 returnStdout: true
                             ).trim()
 
