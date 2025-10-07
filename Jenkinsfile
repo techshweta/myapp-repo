@@ -48,62 +48,53 @@ pipeline {
 }      
    
         stage('Deploy to EC2') {
-     steps {
-                withAWS(credentials: AWS_CRED, region: 'ap-south-1') {
+            steps {
+                sshagent([SSH_KEY]) {
                     dir('terraform') {
                         script {
+                            def ec2_ips_json = sh(
+                                script: "terraform output -json ec2_public_ip",
+                                returnStdout: true
+                            ).trim()
+
+                            def ec2_map = readJSON text: ec2_ips_json
+
                             ['dev','uat','prod'].each { envName ->
-                                echo "Fetching output for ${envName}"
-
-                                // Ensure workspace is selected
-                                sh "terraform workspace select ${envName}"
-
-                                // Get Terraform output (per workspace)
-                                def ec2_ip = sh(
-                                    script: "terraform output -raw ec2_public_ip",
-                                    returnStdout: true
-                                ).trim()
-
+                                def ec2_ip = ec2_map[envName]
                                 echo "Deploying to ${envName} at ${ec2_ip}"
 
-                                sh "sleep 30" // Optional wait for EC2 to be ready
+                                sh "sleep 30"
 
-                                // Add EC2 host key to known_hosts safely
                                 sh """
                                     mkdir -p /var/lib/jenkins/.ssh
                                     ssh-keyscan -H ${ec2_ip} >> /var/lib/jenkins/.ssh/known_hosts || true
                                     chmod 600 /var/lib/jenkins/.ssh/known_hosts
                                 """
 
-                                // SSH deployment
-                                sshagent([SSH_KEY]) {
-                                    sh """
-                                        ssh -o BatchMode=yes ubuntu@${ec2_ip} "
-                                        # Wait for any apt locks
-                                        while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
-                                            echo 'Waiting for apt lock...'
-                                            sleep 10
-                                        done
+                                sh "ssh-add -l"
+                                sh "ssh -o BatchMode=yes ubuntu@${ec2_ip} whoami"
 
-                                        # Install Docker if missing
-                                        if ! command -v docker &> /dev/null; then
-                                            sudo apt-get update -y
-                                            sudo apt-get install -y docker.io
-                                            sudo usermod -aG docker ubuntu
-                                            sudo systemctl enable docker
-                                            sudo systemctl start docker
-                                        fi
+                                sh """
+                                    ssh -o BatchMode=yes ubuntu@${ec2_ip} "
+                                    while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
+                                        echo 'Waiting for apt lock to be released...'
+                                        sleep 30
+                                    done
 
-                                        # Stop & remove old container
-                                        sudo docker stop myapp || true
-                                        sudo docker rm -f myapp || true
+                                    if ! command -v docker &> /dev/null; then
+                                        sudo apt-get update -y
+                                        sudo apt-get install -y docker.io
+                                        sudo usermod -aG docker ubuntu
+                                        sudo systemctl enable docker
+                                        sudo systemctl start docker
+                                    fi
 
-                                        # Pull latest image & run
-                                        sudo docker pull ${IMAGE_NAME}:latest
-                                        sudo docker run -d --name myapp -p 8081:8080 ${IMAGE_NAME}:latest
-                                        "
-                                    """
-                                }
+                                    sudo docker stop myapp || true
+                                    sudo docker rm -f myapp || true
+                                    sudo docker pull ${IMAGE_NAME}:latest
+                                    sudo docker run -d --name myapp -p 8081:8080 ${IMAGE_NAME}:latest
+                                    "
+                                """
                             }
                         }
                     }
